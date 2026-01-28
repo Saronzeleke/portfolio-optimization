@@ -121,7 +121,8 @@ class TestBacktester(unittest.TestCase):
             rebalance_freq=None
         )
         
-        self.assertEqual(len(strategy_returns), len(self.backtester.returns_data) - 1)
+        self.assertEqual(len(strategy_returns), len(self.backtester.returns_data))
+
 
 if __name__ == '__main__':
     unittest.main()
