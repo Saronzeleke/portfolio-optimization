@@ -160,8 +160,8 @@ class EDA:
         summary_stats = {}
         
         for ticker, df in self.data_dict.items():
-            price = df['Adj Close']
-            returns = df['Daily_Return'].dropna()
+            price = df['Price']
+            returns = df['Return'].dropna()
             
             stats = {
                 'Start_Date': df.index.min(),
