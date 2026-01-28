@@ -50,7 +50,6 @@ class EDA:
         plt.tight_layout()
         if save_path:
             plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        plt.show()
         plt.close()
 
     def plot_returns_distribution(self, save_path=None):
@@ -74,7 +73,6 @@ class EDA:
         plt.tight_layout()
         if save_path:
             plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        plt.show()
         plt.close()
 
     def plot_volatility(self, save_path=r'C:\Users\admin\portfolio-optimization\reports'):
@@ -91,7 +89,6 @@ class EDA:
             plt.grid(True, alpha=0.3)
             file_path = os.path.join(save_path, 'volatility.png')
             plt.savefig(file_path, dpi=300, bbox_inches='tight')
-            plt.show()
             plt.close()
 
             # Bollinger Bands
@@ -111,7 +108,6 @@ class EDA:
             plt.grid(True, alpha=0.3)
             file_path = os.path.join(save_path, 'Price_with_Bollinger_Bands.png')
             plt.savefig(file_path, dpi=300, bbox_inches='tight')
-            plt.show()
             plt.close()
 
     def perform_stationarity_test(self):
@@ -171,6 +167,7 @@ class EDA:
         plt.tight_layout()
         import os 
         save_path=r'C:\Users\admin\portfolio-optimization\reports'
+        os.makedirs(save_path, exist_ok=True)
         file_path = os.path.join(save_path, 'Correlation_Matrix.png')
         plt.savefig(file_path, dpi=300, bbox_inches='tight')
         plt.close()
