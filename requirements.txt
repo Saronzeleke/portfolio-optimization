@@ -1,0 +1,15 @@
+yfinance==0.2.38
+pandas==2.1.4
+numpy==1.26.4
+matplotlib==3.8.2
+seaborn==0.13.0
+scikit-learn==1.4.0
+statsmodels==0.14.1
+pmdarima==2.0.4
+tensorflow==2.15.0
+pyportfolioopt==1.5.5
+arch==6.3.1
+jupyter==1.0.0
+notebook==7.0.6
+black==24.1.1
+pytest==7.4.4
