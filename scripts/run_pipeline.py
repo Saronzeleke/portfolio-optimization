@@ -174,7 +174,14 @@ def main():
     
     prices_list = []
     for ticker, df in cleaned_data.items():
-        prices_list.append(pd.DataFrame({'Date': df.index, 'Ticker': ticker, 'Price': df['Adj Close']}))
+        price_col = get_price_column(df)
+        prices_list.append(
+                    pd.DataFrame({
+              'Date': df.index,
+              'Ticker': ticker,
+              'Price': df[price_col]
+             })
+          )
     all_prices = pd.concat(prices_list, ignore_index=True)
     prices_matrix = all_prices.pivot(index='Date', columns='Ticker', values='Price').dropna()
     

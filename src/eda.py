@@ -51,7 +51,8 @@ class EDA:
         if save_path:
             plt.savefig(save_path, dpi=300, bbox_inches='tight')
         plt.show()
-        
+        plt.close()
+
     def plot_returns_distribution(self, save_path=None):
         """Plot distribution of returns"""
         fig, axes = plt.subplots(1, len(self.data_dict), figsize=(5*len(self.data_dict), 5))
@@ -74,7 +75,8 @@ class EDA:
         if save_path:
             plt.savefig(save_path, dpi=300, bbox_inches='tight')
         plt.show()
-        
+        plt.close()
+
     def plot_volatility(self, save_path=r'C:\Users\admin\portfolio-optimization\reports'):
         """Plot volatility measures"""
         import os
@@ -90,7 +92,8 @@ class EDA:
             file_path = os.path.join(save_path, 'volatility.png')
             plt.savefig(file_path, dpi=300, bbox_inches='tight')
             plt.show()
-            
+            plt.close()
+
             # Bollinger Bands
             plt.figure(figsize=(14,4))
             price_col = next((c for c in df.columns if 'Adj Close' in c), None)
@@ -109,7 +112,8 @@ class EDA:
             file_path = os.path.join(save_path, 'Price_with_Bollinger_Bands.png')
             plt.savefig(file_path, dpi=300, bbox_inches='tight')
             plt.show()
-        
+            plt.close()
+
     def perform_stationarity_test(self):
         """Perform Augmented Dickey-Fuller test"""
         results = {}
@@ -165,8 +169,12 @@ class EDA:
                     square=True, linewidths=1, cbar_kws={"shrink": 0.8})
         plt.title('Correlation Matrix of Daily Returns', fontsize=16, fontweight='bold')
         plt.tight_layout()
-        plt.show()
-        
+        import os 
+        save_path=r'C:\Users\admin\portfolio-optimization\reports'
+        file_path = os.path.join(save_path, 'Correlation_Matrix.png')
+        plt.savefig(file_path, dpi=300, bbox_inches='tight')
+        plt.close()
+
         return correlation_matrix
     
     def generate_summary_statistics(self):
