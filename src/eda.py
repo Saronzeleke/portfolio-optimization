@@ -16,16 +16,29 @@ sns.set_palette("husl")
 class EDA:
     """Class for performing exploratory data analysis"""
     
-    def __init__(self, data_dict):
-        self.data_dict = data_dict
+    def __init__(self, cleaned_data):
+        """
+        cleaned_data: dict of DataFrames from DataLoader.clean_data()
+        Each DataFrame contains:
+            - 'Adj Close' (price)
+            - 'Daily_Return' (pct change)
+            - 'Log_Return'
+            - Rolling stats and Bollinger Bands
+        """
+        self.data_dict = cleaned_data
         
     def plot_price_series(self, save_path=None):
         """Plot price series for all assets"""
-        fig, axes = plt.subplots(3, 1, figsize=(14, 12))
+        fig, axes = plt.subplots(len(self.data_dict), 1, figsize=(14, 4*len(self.data_dict)))
         
         for idx, (ticker, df) in enumerate(self.data_dict.items()):
-            ax = axes[idx]
-            ax.plot(df.index, df['Adj Close'], linewidth=2)
+            ax = axes[idx] if len(self.data_dict) > 1 else axes
+            price_col = next((c for c in df.columns if 'Adj Close' in c), None)
+            if price_col is None:
+               price_col = next((c for c in df.columns if 'Close' in c), None)
+
+            ax.plot(df.index, df[price_col], linewidth=2, label='Price')
+
             ax.set_title(f'{ticker} - Adjusted Closing Price', fontsize=14, fontweight='bold')
             ax.set_ylabel('Price ($)', fontsize=12)
             ax.grid(True, alpha=0.3)
@@ -41,17 +54,16 @@ class EDA:
         
     def plot_returns_distribution(self, save_path=None):
         """Plot distribution of returns"""
-        fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+        fig, axes = plt.subplots(1, len(self.data_dict), figsize=(5*len(self.data_dict), 5))
         
         for idx, (ticker, df) in enumerate(self.data_dict.items()):
-            ax = axes[idx]
+            ax = axes[idx] if len(self.data_dict) > 1 else axes
             returns = df['Daily_Return'].dropna()
             
-            # Histogram with KDE
             sns.histplot(returns, bins=50, kde=True, ax=ax)
-            ax.axvline(x=returns.mean(), color='r', linestyle='--', label=f'Mean: {returns.mean():.4f}')
-            ax.axvline(x=returns.mean() + returns.std(), color='g', linestyle=':', alpha=0.7)
-            ax.axvline(x=returns.mean() - returns.std(), color='g', linestyle=':', alpha=0.7)
+            ax.axvline(returns.mean(), color='r', linestyle='--', label=f'Mean: {returns.mean():.4f}')
+            ax.axvline(returns.mean() + returns.std(), color='g', linestyle=':', alpha=0.7)
+            ax.axvline(returns.mean() - returns.std(), color='g', linestyle=':', alpha=0.7)
             
             ax.set_title(f'{ticker} - Daily Returns Distribution', fontsize=12, fontweight='bold')
             ax.set_xlabel('Daily Return')
@@ -63,44 +75,52 @@ class EDA:
             plt.savefig(save_path, dpi=300, bbox_inches='tight')
         plt.show()
         
-    def plot_volatility(self, save_path=None):
+    def plot_volatility(self, save_path=r'C:\Users\admin\portfolio-optimization\reports'):
         """Plot volatility measures"""
-        fig, axes = plt.subplots(2, 1, figsize=(14, 10))
-        
-        # Focus on TSLA for volatility analysis
-        tsla_df = self.data_dict['TSLA']
-        
-        # Rolling volatility
-        rolling_vol = tsla_df['Daily_Return'].rolling(window=20).std() * np.sqrt(252)
-        axes[0].plot(tsla_df.index, rolling_vol, linewidth=2, color='darkred')
-        axes[0].set_title('TSLA - 20-day Rolling Annualized Volatility', fontsize=14, fontweight='bold')
-        axes[0].set_ylabel('Volatility')
-        axes[0].grid(True, alpha=0.3)
-        
-        # Bollinger Bands
-        axes[1].plot(tsla_df.index, tsla_df['Adj Close'], label='Price', linewidth=2)
-        axes[1].plot(tsla_df.index, tsla_df['Bollinger_High'], 'r--', alpha=0.7, label='Upper Band')
-        axes[1].plot(tsla_df.index, tsla_df['Rolling_Mean_20'], 'g--', alpha=0.7, label='20-day MA')
-        axes[1].plot(tsla_df.index, tsla_df['Bollinger_Low'], 'r--', alpha=0.7, label='Lower Band')
-        axes[1].fill_between(tsla_df.index, tsla_df['Bollinger_Low'], tsla_df['Bollinger_High'], alpha=0.1)
-        axes[1].set_title('TSLA - Price with Bollinger Bands', fontsize=14, fontweight='bold')
-        axes[1].set_ylabel('Price ($)')
-        axes[1].legend()
-        axes[1].grid(True, alpha=0.3)
-        
-        plt.tight_layout()
-        if save_path:
-            plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        plt.show()
+        import os
+        os.makedirs(save_path, exist_ok=True)
+        for ticker, df in self.data_dict.items():
+            # Rolling volatility
+            rolling_vol = df['Daily_Return'].rolling(window=20).std() * np.sqrt(252)
+            plt.figure(figsize=(14,4))
+            plt.plot(df.index, rolling_vol, linewidth=2, color='darkred')
+            plt.title(f'{ticker} - 20-day Rolling Annualized Volatility', fontsize=14, fontweight='bold')
+            plt.ylabel('Volatility')
+            plt.grid(True, alpha=0.3)
+            file_path = os.path.join(save_path, 'volatility.png')
+            plt.savefig(file_path, dpi=300, bbox_inches='tight')
+            plt.show()
+            
+            # Bollinger Bands
+            plt.figure(figsize=(14,4))
+            price_col = next((c for c in df.columns if 'Adj Close' in c), None)
+            if price_col is None:
+              price_col = next((c for c in df.columns if 'Close' in c), None)
+            plt.plot(df.index, df[price_col], label='Price', linewidth=2)
+            price_test = adfuller(df[price_col].dropna())
+            plt.plot(df.index, df['Bollinger_High'], 'r--', alpha=0.7, label='Upper Band')
+            plt.plot(df.index, df['Rolling_Mean_20'], 'g--', alpha=0.7, label='20-day MA')
+            plt.plot(df.index, df['Bollinger_Low'], 'r--', alpha=0.7, label='Lower Band')
+            plt.fill_between(df.index, df['Bollinger_Low'], df['Bollinger_High'], alpha=0.1)
+            plt.title(f'{ticker} - Price with Bollinger Bands', fontsize=14, fontweight='bold')
+            plt.ylabel('Price ($)')
+            plt.legend()
+            plt.grid(True, alpha=0.3)
+            file_path = os.path.join(save_path, 'Price_with_Bollinger_Bands.png')
+            plt.savefig(file_path, dpi=300, bbox_inches='tight')
+            plt.show()
         
     def perform_stationarity_test(self):
         """Perform Augmented Dickey-Fuller test"""
         results = {}
         
         for ticker, df in self.data_dict.items():
-            # Test on price
-            price_test = adfuller(df['Adj Close'].dropna())
-            # Test on returns
+            price_col = next((c for c in df.columns if 'Adj Close' in c), None)
+            if price_col is None:
+              price_col = next((c for c in df.columns if 'Close' in c), None)
+
+            price_test = adfuller(df[price_col].dropna())
+
             return_test = adfuller(df['Daily_Return'].dropna())
             
             results[ticker] = {
@@ -112,8 +132,7 @@ class EDA:
                 'Return_Stationary': return_test[1] < 0.05
             }
             
-        results_df = pd.DataFrame(results).T
-        return results_df
+        return pd.DataFrame(results).T
     
     def detect_outliers(self, threshold=3):
         """Detect outliers using z-score method"""
@@ -137,18 +156,13 @@ class EDA:
     
     def calculate_correlation_matrix(self):
         """Calculate correlation between assets"""
-        # Combine returns
-        returns_data = {}
-        for ticker, df in self.data_dict.items():
-            returns_data[ticker] = df['Daily_Return']
-        
+        returns_data = {ticker: df['Daily_Return'] for ticker, df in self.data_dict.items()}
         returns_df = pd.DataFrame(returns_data).dropna()
         correlation_matrix = returns_df.corr()
         
-        # Plot heatmap
-        plt.figure(figsize=(10, 8))
+        plt.figure(figsize=(10,8))
         sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', center=0,
-                   square=True, linewidths=1, cbar_kws={"shrink": 0.8})
+                    square=True, linewidths=1, cbar_kws={"shrink": 0.8})
         plt.title('Correlation Matrix of Daily Returns', fontsize=16, fontweight='bold')
         plt.tight_layout()
         plt.show()
@@ -160,8 +174,10 @@ class EDA:
         summary_stats = {}
         
         for ticker, df in self.data_dict.items():
-            price = df['Price']
-            returns = df['Return'].dropna()
+            price_col = 'Adj Close' if 'Adj Close' in df.columns else 'Close'
+            price = df[price_col]
+
+            returns = df['Daily_Return'].dropna()
             
             stats = {
                 'Start_Date': df.index.min(),

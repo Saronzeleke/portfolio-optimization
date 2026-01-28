@@ -34,7 +34,12 @@ class TimeSeriesForecaster:
     def prepare_data(self, test_size=0.2):
         """Prepare data for time series forecasting"""
         # Use adjusted close prices
-        prices = self.tsla_data['Adj Close'].values.reshape(-1, 1)
+        price_col = next((c for c in self.tsla_data.columns if 'Adj Close' in c), None)
+        if price_col is None:
+           price_col = next((c for c in self.tsla_data.columns if 'Close' in c), None)
+
+        prices = self.tsla_data[price_col].values.reshape(-1, 1)
+
         
         # Split chronologically
         split_idx = int(len(prices) * (1 - test_size))

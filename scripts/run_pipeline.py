@@ -118,7 +118,10 @@ def main():
     # Plot
     plt.figure(figsize=(14,8))
     historical_dates = tsla_data.index[-504:]
-    historical_prices = tsla_data.loc[historical_dates,'Adj Close']
+    from src.utils import get_price_column
+    price_col = get_price_column(tsla_data)
+    historical_prices = tsla_data.loc[historical_dates, price_col]
+
     plt.plot(historical_dates, historical_prices, label='Historical', color='blue', linewidth=2)
     plt.plot(future_dates, future_forecast_rescaled, label='Forecast', color='red', linewidth=2)
     plt.fill_between(future_dates, lower_bound, upper_bound, color='red', alpha=0.2, label='95% CI')
