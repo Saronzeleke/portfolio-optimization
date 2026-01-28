@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import warnings
 warnings.filterwarnings('ignore')
 
+
 class DataLoader:
     """Class to handle data extraction and preprocessing for portfolio optimization pipeline"""
     
@@ -28,6 +29,10 @@ class DataLoader:
                     if stock.empty:
                         raise ValueError(f"No data downloaded for {ticker}")
                     
+                    # Flatten columns if multi-index
+                    if isinstance(stock.columns, pd.MultiIndex):
+                        stock.columns = [' '.join(col).strip() for col in stock.columns.values]
+                    
                     stock['Ticker'] = ticker
                     stock['Date'] = stock.index
                     data_dict[ticker] = stock
@@ -46,7 +51,7 @@ class DataLoader:
         return data_dict
     
     def clean_data(self, data_dict):
-        """Clean and preprocess data, skip empty DataFrames"""
+        """Clean and preprocess data, handling multi-level columns"""
         cleaned_data = {}
         
         for ticker, df in data_dict.items():
@@ -57,16 +62,28 @@ class DataLoader:
             df_clean = df.copy()
             missing_before = df_clean.isnull().sum().sum()
             
+            # Flatten multi-index columns if exist
+            if isinstance(df_clean.columns, pd.MultiIndex):
+                df_clean.columns = [' '.join(col).strip() for col in df_clean.columns.values]
+            
+            # Select Adj Close column reliably
+            adj_close_col = next((c for c in df_clean.columns if 'Adj Close' in c), None)
+            if adj_close_col is None:
+                adj_close_col = next((c for c in df_clean.columns if 'Close' in c), None)
+            if adj_close_col is None:
+                print(f"Skipping {ticker}: No Close/Adj Close column found")
+                continue
+            
             # Fill minor gaps
             df_clean = df_clean.ffill().bfill()
             
             # Calculate returns
-            df_clean['Daily_Return'] = df_clean['Adj Close'].pct_change()
-            df_clean['Log_Return'] = np.log(df_clean['Adj Close'] / df_clean['Adj Close'].shift(1))
+            df_clean['Daily_Return'] = df_clean[adj_close_col].pct_change()
+            df_clean['Log_Return'] = np.log(df_clean[adj_close_col] / df_clean[adj_close_col].shift(1))
             
             # Rolling statistics for volatility & Bollinger Bands
-            df_clean['Rolling_Mean_20'] = df_clean['Adj Close'].rolling(window=20).mean()
-            df_clean['Rolling_Std_20'] = df_clean['Adj Close'].rolling(window=20).std()
+            df_clean['Rolling_Mean_20'] = df_clean[adj_close_col].rolling(window=20).mean()
+            df_clean['Rolling_Std_20'] = df_clean[adj_close_col].rolling(window=20).std()
             df_clean['Bollinger_High'] = df_clean['Rolling_Mean_20'] + 2 * df_clean['Rolling_Std_20']
             df_clean['Bollinger_Low'] = df_clean['Rolling_Mean_20'] - 2 * df_clean['Rolling_Std_20']
             
@@ -102,7 +119,7 @@ class DataLoader:
             'VaR_Historical': var_hist,
             'VaR_Parametric': var_param,
             'Sharpe_Ratio': sharpe_ratio,
-            'Max_Drawdown': self.calculate_max_drawdown(df['Adj Close'])
+            'Max_Drawdown': self.calculate_max_drawdown(df[returns.name.replace('Daily_Return','Adj Close')] if 'Daily_Return' in df.columns else df.columns[0])
         }
         return metrics
     
@@ -118,9 +135,16 @@ class DataLoader:
         for ticker, df in cleaned_data.items():
             if df.empty:
                 continue
-            df_temp = df[['Date', 'Adj Close', 'Daily_Return']].copy()
+            
+            adj_close_col = next((c for c in df.columns if 'Adj Close' in c), None)
+            if adj_close_col is None:
+                adj_close_col = next((c for c in df.columns if 'Close' in c), None)
+            if adj_close_col is None:
+                continue
+            
+            df_temp = df[['Date', adj_close_col, 'Daily_Return']].copy()
             df_temp['Ticker'] = ticker
-            df_temp = df_temp.rename(columns={'Adj Close': 'Price', 'Daily_Return': 'Return'})
+            df_temp = df_temp.rename(columns={adj_close_col: 'Price', 'Daily_Return': 'Return'})
             combined.append(df_temp)
         
         if not combined:
