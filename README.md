@@ -584,7 +584,7 @@ backtest_report.pdf - Strategy validation report
 
 ✅ Issue templates and pull request workflow
 
-**Code Best Practices **
+**Code Best Practices**
 
 ✅ Clean, modular, and efficient code
 
